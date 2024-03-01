@@ -4,7 +4,7 @@ before:
     - go mod tidy
     - go generate ./...
 builds:
-  - main: ./cmd/splayer/main.go
+  - main: ./main.go
     env:
       - CGO_ENABLED=0
       - GO111MODULE=on
