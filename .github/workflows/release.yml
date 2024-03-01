@@ -18,6 +18,8 @@ jobs:
       contents: write # needed to write releases
       id-token: write # needed for keyless signing
       packages: write # needed for ghcr access
+    env:
+      VERSION: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -27,24 +29,19 @@ jobs:
         with:
           go-version: 1.20.x
 
-#      - uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b # v2.8.1
-#      - name: Sign checksums and create public key for release assets
-#        run: |
-#          cosign sign-blob --key env://COSIGN_PRIVATE_KEY ./dist/checksums.txt > ./dist/checksums.sig
-#          cosign public-key --key env://COSIGN_PRIVATE_KEY > ./dist/argo-rollouts-cosign.pub
-#        env:
-#          COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
-#          COSIGN_PASSWORD: ${{secrets.COSIGN_PASSWORD}}
-      # More assembly might be required: Docker logins, GPG, etc. It all depends
-      # on your needs.
+      - name: Setup environment variables
+        run: |
+          set -xue
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          GIT_TAG=$(if [ -z "`git status --porcelain`" ]; then git describe --exact-match --tags HEAD 2>/dev/null;fi)
+          echo "BUILD_DATE=${BUILD_DATE}" >> $GITHUB_ENV
+          echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_ENV
+
       - uses: goreleaser/goreleaser-action@v2
         with:
-          # either 'goreleaser' (default) or 'goreleaser-pro':
           distribution: goreleaser
           version: latest
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Your GoReleaser Pro key, if you are using the 'goreleaser-pro'
-          # distribution:
-          # GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          GIT_TAG: ${{ env.GIT_TAG }}
